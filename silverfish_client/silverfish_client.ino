@@ -1,7 +1,3 @@
-// system includes
-#include <string>
-#include <vector>
-
 // "system" includes
 #include <AWS_IOT.h>
 #include <jsmn.h>
@@ -9,6 +5,7 @@
 
 // contains WIFI_SSID, WIFI_PASSWORD, and HOST_ADDR
 #include "secrets.h"
+
 // chassis
 #include "Chassis.hpp"
 
@@ -21,7 +18,6 @@ int status = WL_IDLE_STATUS;
 Chassis chassis(23, 22);
 
 void handle_forward(char*, int, char* payload) {
-  // TODO: get power, duration from payload
   chassis.forward(80, 1000);
   chassis.stop();
 }
