@@ -1,5 +1,8 @@
 # ignore the secrets file so wifi secrets aren't shared
 silverfish_client/secrets.h
 
+# lambda dist
+index.zip
+
 # ide stuff
 .vscode
