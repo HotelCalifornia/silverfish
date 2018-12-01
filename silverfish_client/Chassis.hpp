@@ -15,12 +15,10 @@ class Chassis {
     /**
      * Construct a chassis with one motor each on the left and right
      * 
-     * Note that the right-side motor will be initialized in "reverse" configuration
-     * 
      * @param leftPin the pin from which the left-side motor can be controlled
      * @param rightPin the pin from which the right-side motor can be controlled
      */
-    Chassis(int leftPin, int rightPin) : _left(), _right(true), _leftPin(leftPin), _rightPin(rightPin) {};
+    Chassis(int leftPin, int rightPin) : _left(true), _right(true), _leftPin(leftPin), _rightPin(rightPin) {};
     /**
      * Attach motor servo instances to the pins given to the constructor
      * 
@@ -33,20 +31,15 @@ class Chassis {
     void detachAll();
 
     /**
-     * Drive forward
+     * Drive
      * 
-     * 
-     * @param power the power to send to the motors
-     * @param duration how long in milliseconds to drive, blocking until this has elapsed
-     */
-    void forward(int power, int duration);
-    /**
-     * Drive backward
+     * positive values drive forward, negative ones drive in reverse
      * 
      * @param power the power to send to the motors
      * @param duration how long in milliseconds to drive, blocking until this has elapsed
      */
-    void reverse(int power, int duration);
+    void drive(int power, int duration);
+    
     /**
      * Turn clockwise
      * 

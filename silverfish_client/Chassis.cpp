@@ -9,24 +9,20 @@ void Chassis::detachAll() {
   this->_right.detach();
 }
 
-void Chassis::forward(int power, int duration) {
+void Chassis::drive(int power, int duration) {
   this->_left.set(power);
   this->_right.set(power);
   delay(duration);
 }
 
-void Chassis::reverse(int power, int duration) {
-  this->forward(-1 * power, duration);
-}
-
 void Chassis::turnCW(int power, int duration) {
-  this->_left.set(power);
-  this->_right.set(-1 * power);
+  this->_left.set(80);
+  this->_right.set(-80);
   delay(duration);
 }
 
 void Chassis::turnCCW(int power, int duration) {
-  this->_left.set(-1 * power);
+  this->_left.set(0 - power);
   this->_right.set(power);
   delay(duration);
 }
