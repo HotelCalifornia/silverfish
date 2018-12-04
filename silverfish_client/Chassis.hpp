@@ -18,7 +18,7 @@ class Chassis {
      * @param leftPin the pin from which the left-side motor can be controlled
      * @param rightPin the pin from which the right-side motor can be controlled
      */
-    Chassis(int leftPin, int rightPin) : _left(true), _right(true), _leftPin(leftPin), _rightPin(rightPin) {};
+    Chassis(int leftPin, int rightPin) : _left(), _right(), _leftPin(leftPin), _rightPin(rightPin) {};
     /**
      * Attach motor servo instances to the pins given to the constructor
      * 
@@ -35,25 +35,10 @@ class Chassis {
      * 
      * positive values drive forward, negative ones drive in reverse
      * 
-     * @param power the power to send to the motors
+     * @param lp, rp the power to send to the left and right motors, respectively
      * @param duration how long in milliseconds to drive, blocking until this has elapsed
      */
-    void drive(int power, int duration);
-    
-    /**
-     * Turn clockwise
-     * 
-     * @param power the power to send to the motors
-     * @param duration how long in milliseconds to drive, blocking until this has elapsed
-     */
-    void turnCW(int power, int duration);
-    /**
-     * Turn counterclockwise
-     * 
-     * @param power the power to send to the motors
-     * @param duration how long in milliseconds to drive, blocking until this has elapsed
-     */
-    void turnCCW(int power, int duration);
+    void drive(int lp, int rp, int duration);
 
     /**
      * Stop the chassis
