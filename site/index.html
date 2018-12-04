@@ -29,11 +29,11 @@
     </script>
 
     <!-- AWS SDK -->
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.12.min.js"></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.369.0.min.js"></script>
     <!-- Google API -->
     <meta name="google-signin-client_id" content="801478308397-evohkc5cg4jj7srrrhka0ct3uk2cngfv.apps.googleusercontent.com">
 
-    <title>hello world</title>
+    <title>Silverfish Interface</title>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg navbar-dar bg-dark">
@@ -78,9 +78,7 @@
       </div>
     </div>
     <script type="text/javascript">
-      // if(gapi.auth2.getAuthInstance().isSignedIn.get())
-      //   document.getElementById('signout-btn').hidden = false
-
+      // render google signin button
       function render_button() {
         gapi.signin2.render('signin-btn', {
           longtitle: true,
@@ -89,37 +87,44 @@
           onfailure: err => console.error(err)
         })
       }
-      document.getElementById('up-btn').onclick = function() { alert('you need to sign in!') }
-      document.getElementById('down-btn').onclick = function() { alert('you need to sign in!') }
-      document.getElementById('left-btn').onclick = function() { alert('you need to sign in!') }
-      document.getElementById('right-btn').onclick = function() { alert('you need to sign in!') }
+
+      // add handler for signout
       document.getElementById('signout-btn').onclick = function() {
         gapi.auth2.getAuthInstance().signOut().then(() => {
           document.getElementById('signout-btn').hidden = true;
           alert('signed out successfully')
         })
       }
-      function _generatePayload(action, power, duration) {
-        return {
-          action,
-          payload: {
-            power, duration
-          }
-        }
-      }
+
+      // set default handlers for unauthenticated users
+      var handle_noauth = function() { alert('you need to sign in!') }
+      document.getElementById('up-btn').onclick = handle_noauth
+      document.getElementById('down-btn').onclick = handle_noauth
+      document.getElementById('left-btn').onclick = handle_noauth
+      document.getElementById('right-btn').onclick = handle_noauth
+
+      // AWS SNS object
       var sns
+      // AWS DynamoDB Document Client object
+      var db
+
+      // handler for signin button
       async function on_signin(g_usr) {
         if (g_usr.isSignedIn()) {
-          console.log('here', g_usr);
+          // since the user is signed in, show the sign out button
           document.getElementById('signout-btn').hidden = false;
+
           AWS.config.region = 'us-east-2'
+          // authenticate users through AWS Cognito using Google to federate
           AWS.config.credentials = new AWS.CognitoIdentityCredentials({
             IdentityPoolId: 'us-east-2:6a50256c-d4c2-450d-8170-b3d134d803b1',
             Logins: {
               'accounts.google.com': g_usr.getAuthResponse().id_token
             }
           })
-          console.log('there');
+
+          // get or reload user credentials, loading them into config for future
+          // AWS calls that need authentication
           try {
             await new Promise(function(resolve, reject) {
               AWS.config.credentials.get(function(err) {
@@ -131,31 +136,59 @@
             console.error(err)
             return;
           }
+
+          // set up the SNS object, now that the user is authenticated
           sns = new AWS.SNS({ apiVersion: '2010-03-31' })
-          document.getElementById('up-btn').onclick = async function() {
-            console.log('handling')
-            const x = await new Promise(function(resolve, reject) {
-              sns.publish({
-                Message: JSON.stringify(_generatePayload('drive', 80, 500)),
-                TopicArn: 'arn:aws:sns:us-east-2:277733885402:silverfish-frontend'
-              },
-              function(err, data) {
-                if (err) reject(err)
-                else resolve(data)
-              })
-            })
+          // set up the DynamoDB object, now that the user is authenticated
+          db = new AWS.DynamoDB.DocumentClient()
+
+          // generate a payload to send to the robot
+          var _generatePayload = function(action, power, duration) {
+            return {
+              action,
+              payload: {
+                power, duration
+              }
+            }
           }
-          document.getElementById('down-btn').onclick = async function() {
-            const x = await new Promise(function(resolve, reject) {
-              sns.publish({
-                Message: JSON.stringify(_generatePayload('drive', -80, 500)),
-                TopicArn: 'arn:aws:sns:us-east-2:277733885402:silverfish-frontend'
+          // callback for AWS functions
+          var _awsCB = function(err, data) {
+            if (err) console.error(err)
+            else console.log('received', data)
+          }
+          // publish to an SNS topic
+          var snsPublish = function(action) {
+            sns.publish({
+              Message: JSON.stringify(action),
+              TopicArn: 'arn:aws:sns:us-east-2:277733885402:silverfish-frontend'
+            }, _awsCB)
+          }
+          var logData = function(action) {
+            console.log(AWS.config.credentials.identityId)
+            db.update({
+              TableName: 'silverfish-logs',
+              Key: { id: AWS.config.credentials.identityId },
+              ReturnValues: 'ALL_NEW',
+              UpdateExpression: 'set #actions = list_append(if_not_exists(#actions, :empty_list), :action)',
+              ExpressionAttributeNames: {
+                '#actions': 'actions'
               },
-              function(err, data) {
-                if (err) reject(err)
-                else resolve(data)
-              })
-            })
+              ExpressionAttributeValues: {
+                ':action': [action],
+                ':empty_list': []
+              }
+            }, _awsCB)
+          }
+          // add real handlers to the buttons
+          document.getElementById('up-btn').onclick = function() {
+            var payload = _generatePayload('drive', 80, 500)
+            snsPublish(payload)
+            logData(payload)
+          }
+          document.getElementById('down-btn').onclick = function() {
+            var payload = _generatePayload('drive', -80, 500)
+            snsPublish(payload)
+            logData(payload)
           }
         }
       }
