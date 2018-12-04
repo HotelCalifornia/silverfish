@@ -181,12 +181,24 @@
           }
           // add real handlers to the buttons
           document.getElementById('up-btn').onclick = function() {
-            var payload = _generatePayload('drive', 80, 500)
+            var payload = _generatePayload('drive', 80, 300)
             snsPublish(payload)
             logData(payload)
           }
           document.getElementById('down-btn').onclick = function() {
-            var payload = _generatePayload('drive', -80, 500)
+            var payload = _generatePayload('drive', -80, 300)
+            snsPublish(payload)
+            logData(payload)
+          }
+          document.getElementById('left-btn').onclick = function() {
+            var payload = _generatePayload('turn', 80, 300)
+            payload.direction = 'cw'
+            snsPublish(payload)
+            logData(payload)
+          }
+          document.getElementById('right-btn').onclick = function() {
+            var payload = _generatePayload('turn', 80, 300)
+            payload.direction = 'ccw'
             snsPublish(payload)
             logData(payload)
           }
