@@ -28,9 +28,19 @@
       crossorigin="anonymous">
     </script>
 
+    <!-- AWS SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.12.min.js"></script>
+    <!-- Google API -->
+    <meta name="google-signin-client_id" content="801478308397-evohkc5cg4jj7srrrhka0ct3uk2cngfv.apps.googleusercontent.com">
+
     <title>hello world</title>
   </head>
   <body>
+    <nav class="navbar navbar-expand-lg navbar-dar bg-dark">
+      <a class="navbar-brand" href="#">Silverfish</a>
+      <div id="signin-btn"></div>
+      <button id="signout-btn" class="btn">Sign out</button>
+    </nav>
     <div class="container-fluid">
       <div class="row justify-content-md-center">
         <div class="col col-auto">
@@ -40,7 +50,7 @@
       <div class="row no-gutters">
         <div class="col col-4"></div>
         <div class="col col-4">
-          <button type="primary" class="btn btn-primary w-100">
+          <button id="up-btn" type="primary" class="btn btn-primary w-100">
             <i class="fas fa-arrow-up"></i>
             Forward
           </button>
@@ -49,17 +59,17 @@
       </div>
       <div class="row no-gutters">
         <div class="col col-4">
-          <button type="primary" class="btn btn-primary w-100"><i class="fas fa-arrow-left"></i>&nbsp;Left</button>
+          <button id="left-btn" type="primary" class="btn btn-primary w-100"><i class="fas fa-arrow-left"></i>&nbsp;Left</button>
         </div>
         <div class="col col-4"></div>
         <div class="col col-4">
-          <button type="primary" class="btn btn-primary w-100">Right&nbsp;<i class="fas fa-arrow-right"></i></button>
+          <button id="right-btn" type="primary" class="btn btn-primary w-100">Right&nbsp;<i class="fas fa-arrow-right"></i></button>
         </div>
       </div>
       <div class="row no-gutters">
         <div class="col col-4"></div>
         <div class="col col-4">
-          <button type="primary" class="btn btn-primary w-100">
+          <button id="down-btn" type="primary" class="btn btn-primary w-100">
             <i class="fas fa-arrow-down"></i>
             Reverse
           </button>
@@ -67,5 +77,89 @@
         <div class="col col-4"></div>
       </div>
     </div>
+    <script type="text/javascript">
+      // if(gapi.auth2.getAuthInstance().isSignedIn.get())
+      //   document.getElementById('signout-btn').hidden = false
+
+      function render_button() {
+        gapi.signin2.render('signin-btn', {
+          longtitle: true,
+          theme: 'dark',
+          onsuccess: on_signin,
+          onfailure: err => console.error(err)
+        })
+      }
+      document.getElementById('up-btn').onclick = function() { alert('you need to sign in!') }
+      document.getElementById('down-btn').onclick = function() { alert('you need to sign in!') }
+      document.getElementById('left-btn').onclick = function() { alert('you need to sign in!') }
+      document.getElementById('right-btn').onclick = function() { alert('you need to sign in!') }
+      document.getElementById('signout-btn').onclick = function() {
+        gapi.auth2.getAuthInstance().signOut().then(() => {
+          document.getElementById('signout-btn').hidden = true;
+          alert('signed out successfully')
+        })
+      }
+      function _generatePayload(action, power, duration) {
+        return {
+          action,
+          payload: {
+            power, duration
+          }
+        }
+      }
+      var sns
+      async function on_signin(g_usr) {
+        if (g_usr.isSignedIn()) {
+          console.log('here', g_usr);
+          document.getElementById('signout-btn').hidden = false;
+          AWS.config.region = 'us-east-2'
+          AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+            IdentityPoolId: 'us-east-2:6a50256c-d4c2-450d-8170-b3d134d803b1',
+            Logins: {
+              'accounts.google.com': g_usr.getAuthResponse().id_token
+            }
+          })
+          console.log('there');
+          try {
+            await new Promise(function(resolve, reject) {
+              AWS.config.credentials.get(function(err) {
+                if (err) reject(err)
+                else resolve()
+              })
+            })
+          } catch (err) {
+            console.error(err)
+            return;
+          }
+          sns = new AWS.SNS({ apiVersion: '2010-03-31' })
+          document.getElementById('up-btn').onclick = async function() {
+            console.log('handling')
+            const x = await new Promise(function(resolve, reject) {
+              sns.publish({
+                Message: JSON.stringify(_generatePayload('drive', 80, 500)),
+                TopicArn: 'arn:aws:sns:us-east-2:277733885402:silverfish-frontend'
+              },
+              function(err, data) {
+                if (err) reject(err)
+                else resolve(data)
+              })
+            })
+          }
+          document.getElementById('down-btn').onclick = async function() {
+            const x = await new Promise(function(resolve, reject) {
+              sns.publish({
+                Message: JSON.stringify(_generatePayload('drive', -80, 500)),
+                TopicArn: 'arn:aws:sns:us-east-2:277733885402:silverfish-frontend'
+              },
+              function(err, data) {
+                if (err) reject(err)
+                else resolve(data)
+              })
+            })
+          }
+        }
+      }
+    </script>
+    <script src="https://apis.google.com/js/platform.js?onload=render_button" async defer></script>
   </body>
 </html>
