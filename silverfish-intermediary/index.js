@@ -9,19 +9,38 @@ exports.handler = async (event) => {
         const msg = JSON.parse(r.Sns.Message);
         switch (msg.action) {
         case 'drive':
-            console.log(`driving at ${msg.payload.power} for ${msg.payload.duration}ms`)
             await iotdata.publish({
                 topic: 'robot/drive',
-                payload: JSON.stringify(msg.payload),
+                payload: JSON.stringify({
+                    left_power: msg.payload.power,
+                    right_power: msg.payload.power,
+                    duration: msg.payload.duration
+                }),
                 qos: 0
             }).promise();
             break;
         case 'turn':
             if (!msg.direction) return { statusCode: 400, message: 'must specify a direction!' }
             if (msg.direction !== 'cw' && msg.direction !== 'ccw') return { statusCode: 400, message: `invalid direction ${msg.direction}!` }
+            let lp;
+            let rp;
+            switch (msg.direction) {
+                case 'cw':
+                   lp = -msg.payload.power;
+                   rp = msg.payload.power;
+                   break;
+                case 'ccw':
+                    lp = msg.payload.power;
+                    rp = -msg.payload.power;
+                    break;
+            }
             await iotdata.publish({
-                topic: `robot/turn/${msg.direction}`,
-                payload: JSON.stringify(msg.payload),
+                topic: `robot/drive`,
+                payload: JSON.stringify({
+                    left_power: lp,
+                    right_power: rp,
+                    duration: msg.payload.duration
+                }),
                 qos: 0
             }).promise();
             break;
